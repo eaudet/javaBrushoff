@@ -1,0 +1,158 @@
+When would you make a variable volatile?
+----------------------------------------
+
+What is a volatile variable?
+    public volatile String memJoke;
+
+All threads will read the same value for the volatile object since it is written in main memory. It also guarantees
+that all variables (changed before) of the thread who writes the volatile value will be flushed in main memory thus
+guarantees that other threads will read the latest updated value of these variables as well. Developers
+don't have to use the volatile keyword on all variables if they rely on this pattern. They simply have to use the
+flush mechanism intelligently. But, be careful if the writes on
+non volatile happens after and that there are no logical relation between the volatile and the non volatile
+objects, the compiler may reorder the instructions. Thus, the "flush" in main memory will not include the variables
+written after. The use of the volatile keywords comes with the "happens before guarantee".
+
+The use of volatile does not guarantee that concurrent threads will read the same value. The counter increment
+is a good example. The time it takes to increment a volatile variable creates a racing condition between threads.
+If you do not use the sychronized keyword on these lines of instructions, you'll get a mess.
+
+Also, by using volatile keyword, you bypass the reordering of the lines by the compiler. This can lead to poor
+performance. In the end, writing in main memory is more expansive than writing in cpu cache memory. So use
+with great care.
+
+Let's write some code to see the difference between using synchronized and volatile.
+
+** Answer **
+I would use volatile keyword when sharing common ressources (variable) between threads. Each thread would have
+to use copies the shared variables to do some algorithms.
+
+
+Sources:
+http://tutorials.jenkov.com/java-concurrency/volatile.html
+
+
+
+How do you decide whether to use a HashMap or a TreeMap?
+--------------------------------------------------------
+
+The HashMap does not guarantee the order of the item added. TreeMap guarantees the order of the items added.
+
+How do you decide whether to use a CopyOnWriteArrayList or a Collections.synchronizedList(ArrayList)?
+-----------------------------------------------------------------------------------------------------
+
+The CopyOnWriteArray is very fast when you have few updates and a lot of concurrent reads. Because,
+the current block of code runs on the immutable list while a write creates a copy. So, if you create
+a lot of updates, it will create a lot of copies and may become a memory monster.
+This is really best when you sometimes have to modify the collection size and value of an existing
+ item inside the iterator since it will not throw an exception.
+
+The Collections.synchronizedList(ArrayList) is faster when doing a lot of updates to the list since it
+does not clog the memory with copies of the list. You do need to synchronize the block updating the
+List...which is strange since it is a synchronizedList. Also, it wont throw exception if you change
+the value of the item in the list but it will throw and exception if you remove or add an item.
+
+When using CopyOnWriteArrayList, no need to synchronize the block working on the list
+because all writes creates a copy and CoptOnWriteArrayList is truly thread safe.
+
+        CopyOnWriteArrayList
+        Thread: B
+        10, 20, 30, [10, 20, 300]
+        Thread: A
+        10, 20, 30, [10, 20, 300]
+
+When using Collections.synchronizedList(ArrayList), you need to synchronize the block that writes the List.
+Otherwise, you'll get strange results.
+
+Synchronized:
+
+        Testing Collections.synchronizedList
+        Thread: t7
+        10, 20, 200, [10, 20, 2000]
+        Thread: t8
+        10, 20, 200, [10, 20, 2000]
+        Thread: t4
+        10, 20, 200, [10, 20, 2000]
+        Thread: t0
+        10, 20, 200, [10, 20, 2000]
+        Thread: t3
+        10, 20, 200, [10, 20, 2000]
+        Thread: t6
+        10, 20, 200, [10, 20, 2000]
+        Thread: t5
+        10, 20, 200, [10, 20, 2000]
+        Thread: t2
+        10, 20, 200, [10, 20, 2000]
+        Thread: t1
+        10, 20, 200, [10, 20, 2000]
+        Thread: t9
+        10, 20, 200, [10, 20, 2000]
+
+Not Synchronized:
+
+        Testing Collections.synchronizedList
+        Thread: t4
+        10, 20, 200, [10, 20, 100]
+        Thread: t8
+        10, 20, 200, [10, 20, 200]
+        Thread: t7
+        10, 20, 200, [10, 20, 2000]
+        Thread: t3
+        10, 20, 200, [10, 20, 2000]
+        Thread: t0
+        10, 20, 200, [10, 20, 2000]
+        Thread: t1
+        10, 20, 200, [10, 20, 100]
+        Thread: t6
+        10, 20, 200, [10, 20, 100]
+        Thread: t2
+        10, 20, 200, [10, 20, 100]
+        Thread: t9
+        10, 20, 200, [10, 20, 2000]
+        Thread: t5
+        10, 20, 200, [10, 20, 200]
+
+So, my answer would be to use CopyOnWriteArrayList if I have big List with few updates since it gives a better
+performance and the source code is cleaner. Otherwise (lots of updates, but no remove or delete inside the iterator)
+I would have to use the Collections.synchronizedList().
+
+
+When would you use mergesort over quicksort?
+--------------------------------------------
+
+Both are very good sorting algorithms. The mergesort works better when dealing with IO (Disk) stored list and quicksort
+when dealing with RAM list. This is perhaps due to the number of compare iteration. Mergesort does less comparison
+than quicksort? I just disappeared through my ass hole.
+
+One thing for sure using 200 000 int values (in RAM) Quicksort outperforms (2x faster) than Mergesort. But, Java 8 List
+sort (Arrays.sort) is 8 times faster than Mergesort thus ~4 times faster than Quicksort. But all three are well
+under the O(nlogn).
+
+
+When might recursion cause stack overflows?
+-------------------------------------------
+
+When the recursive method does not find an exit situation. In that case, it will throw a stackoverflow exception.
+
+Is Math.abs(Random.nextInt()) always positive?
+----------------------------------------------
+Yes. Random.nextInt() can return negative values but Math.abs will change any negative value to positive value.
+
+What are the pros/cons of async vs. blocking I/O?
+-------------------------------------------------
+Async Pros
+- Client calling a async method will never wait for the result more that network latency time.
+- Client thread continues to run even if the called method is not done working.
+Async Cons
+- Client must handle the case of an eventually inconsistent I/O in the case the called method failed to perform.
+
+Blocking I/O Pros
+- Client will receive true result from the method called in a blocking I/O mode.
+- No compensation needed since results will give a consistent messages.
+Blocking I/O Cons
+- Blocks client thread until the methods returns.
+
+What unit tests would you write for Arrays.binarySearch?
+--------------------------------------------------------
+- If the list was sorted prior to binarysearch (although I was not able to find a problem).
+- If using an implementation of Comparable interface.
